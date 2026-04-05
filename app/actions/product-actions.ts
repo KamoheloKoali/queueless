@@ -137,6 +137,71 @@ export async function createCategory(input: { name: string }) {
   return { success: true, message: "Category saved." };
 }
 
+export async function updateCategory(input: {
+  categoryId: string;
+  name: string;
+}) {
+  await requireAdmin("/admin/products");
+
+  const categoryId = String(input.categoryId ?? "").trim();
+  const nextName = String(input.name ?? "").trim();
+
+  if (!categoryId || !nextName) {
+    return { success: false, message: "Category is required." };
+  }
+
+  const category = await prisma.category.findUnique({
+    where: { id: categoryId },
+  });
+
+  if (!category) {
+    return { success: false, message: "Category not found." };
+  }
+
+  if (category.key === ALL_CATEGORY_NAME) {
+    return { success: false, message: "The all category cannot be edited." };
+  }
+
+  const nextKey = toCategoryKey(nextName);
+  if (nextKey === ALL_CATEGORY_NAME) {
+    return { success: false, message: "The all category name is reserved." };
+  }
+
+  const conflictingCategory = await prisma.category.findUnique({
+    where: { key: nextKey },
+  });
+
+  if (conflictingCategory && conflictingCategory.id !== category.id) {
+    return { success: false, message: "A category with that name already exists." };
+  }
+
+  await prisma.$transaction([
+    prisma.category.update({
+      where: { id: category.id },
+      data: {
+        key: nextKey,
+        name: nextName,
+      },
+    }),
+    prisma.product.updateMany({
+      where: {
+        category: {
+          equals: category.name,
+          mode: "insensitive",
+        },
+      },
+      data: {
+        category: nextName,
+      },
+    }),
+  ]);
+
+  revalidatePath("/");
+  revalidatePath("/admin/products");
+
+  return { success: true, message: "Category updated." };
+}
+
 export async function deleteCategory(input: { categoryId: string }) {
   await requireAdmin("/admin/products");
 
@@ -181,6 +246,54 @@ export async function deleteCategory(input: { categoryId: string }) {
     success: true,
     message: `Category "${category.name}" deleted. Products moved to all.`,
   };
+}
+
+export async function updateProduct(input: {
+  productId: string;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  imageUrl: string;
+}) {
+  await requireAdmin("/admin/products");
+
+  const productId = String(input.productId ?? "").trim();
+  const name = String(input.name ?? "").trim();
+  const description = String(input.description ?? "").trim();
+  const rawCategory = String(input.category ?? "").trim();
+  const imageUrl = String(input.imageUrl ?? "").trim();
+  const price = Number(input.price);
+
+  if (!productId) {
+    return { success: false, message: "Product is required." };
+  }
+
+  if (!name || !description || !imageUrl) {
+    return { success: false, message: "All product fields are required." };
+  }
+
+  if (!Number.isFinite(price) || price <= 0) {
+    return { success: false, message: "Price must be greater than zero." };
+  }
+
+  const category = await upsertCategoryByName(rawCategory || ALL_CATEGORY_NAME);
+
+  await prisma.product.update({
+    where: { id: productId },
+    data: {
+      name,
+      description,
+      category: category.name,
+      price,
+      imageUrl,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/products");
+
+  return { success: true, message: "Product updated." };
 }
 
 export async function deleteProduct(input: { productId: string }) {
