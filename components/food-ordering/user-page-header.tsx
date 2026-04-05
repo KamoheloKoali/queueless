@@ -13,6 +13,7 @@ type UserPageHeaderProps = {
   userName: string;
   userInitials: string;
   userImage?: string | null;
+  userRole?: "super_admin" | "admin" | "users";
   showBack?: boolean;
 };
 
@@ -22,9 +23,11 @@ export function UserPageHeader({
   userName,
   userInitials,
   userImage,
+  userRole = "users",
   showBack = true,
 }: UserPageHeaderProps) {
   const router = useRouter();
+  const canAccessAdmin = userRole === "admin" || userRole === "super_admin";
 
   return (
     <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -51,6 +54,17 @@ export function UserPageHeader({
         </Button>
         {isAuthenticated ? (
           <>
+            {canAccessAdmin ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-9 rounded-full"
+                nativeButton={false}
+                render={<Link href="/admin" />}
+              >
+                Admin
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="ghost"
@@ -79,6 +93,7 @@ export function UserPageHeader({
           userName={userName}
           userInitials={userInitials}
           userImage={userImage}
+          userRole={userRole}
         />
       </div>
     </header>

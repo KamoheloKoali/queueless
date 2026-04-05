@@ -18,6 +18,7 @@ export default async function ProfilePage() {
         name: profile.name,
         email: profile.email,
         image: profile.image,
+        role: profile.role,
       }}
     />
   );

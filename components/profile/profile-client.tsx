@@ -25,6 +25,7 @@ type ProfileClientProps = {
     name: string;
     email: string;
     image?: string | null;
+    role: "super_admin" | "admin" | "users";
   };
 };
 
@@ -100,6 +101,7 @@ export function ProfileClient({ user }: ProfileClientProps) {
         userName={name || email}
         userInitials={getInitials(name || email)}
         userImage={image || null}
+        userRole={user.role}
       />
       <Card className="rounded-xl border py-0">
         <CardHeader className="px-4 py-3">

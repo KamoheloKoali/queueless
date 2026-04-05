@@ -35,6 +35,7 @@ export default async function OrdersPage() {
         userName={userName}
         userInitials={getInitials(userName)}
         userImage={viewer?.image ?? null}
+        userRole={viewer?.role ?? "users"}
       />
       <div className="space-y-4">
         {orders.map((order) => (

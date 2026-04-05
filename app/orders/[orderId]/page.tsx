@@ -49,6 +49,7 @@ export default async function OrderDetailsPage({
         userName={userName}
         userInitials={getInitials(userName)}
         userImage={viewer?.image ?? null}
+        userRole={viewer?.role ?? "users"}
       />
       <section className="grid gap-4 lg:grid-cols-[2fr_1fr]">
         <Card className="rounded-xl ring-0 py-0">

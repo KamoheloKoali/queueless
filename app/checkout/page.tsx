@@ -28,6 +28,7 @@ export default async function CheckoutPage() {
         userName={viewer?.name || viewer?.email || "Guest"}
         userInitials={getInitials(viewer?.name || viewer?.email || "Guest")}
         userImage={viewer?.image ?? null}
+        userRole={viewer?.role ?? "users"}
       />
     </main>
   );

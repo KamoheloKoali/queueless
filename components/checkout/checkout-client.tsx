@@ -19,6 +19,7 @@ type CheckoutClientProps = {
   userName: string;
   userInitials: string;
   userImage?: string | null;
+  userRole?: "super_admin" | "admin" | "users";
   ecocashNumber: string;
   mpesaNumber: string;
   ecocashCharge: number;
@@ -31,6 +32,7 @@ export function CheckoutClient({
   userName,
   userInitials,
   userImage,
+  userRole = "users",
   ecocashNumber,
   mpesaNumber,
   ecocashCharge,
@@ -89,6 +91,7 @@ export function CheckoutClient({
         userName={userName}
         userInitials={userInitials}
         userImage={userImage}
+        userRole={userRole}
       />
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
       <div className="space-y-4">

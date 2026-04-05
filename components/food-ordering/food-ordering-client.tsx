@@ -13,6 +13,7 @@ type FoodOrderingClientProps = {
   userImage?: string | null;
   products: ConsumerProduct[];
   isAuthenticated: boolean;
+  userRole?: "super_admin" | "admin" | "users";
 };
 
 function getInitials(name: string) {
@@ -32,6 +33,7 @@ export function FoodOrderingClient({
   userImage,
   products,
   isAuthenticated,
+  userRole = "users",
 }: FoodOrderingClientProps) {
   const { itemCount, addItem } = useCart();
   const [searchInput, setSearchInput] = useState("");
@@ -78,6 +80,7 @@ export function FoodOrderingClient({
         userName={userDisplayName}
         userImage={userImage}
         isAuthenticated={isAuthenticated}
+        userRole={userRole}
         searchQuery={searchInput}
         onSearchQueryChange={setSearchInput}
       />

@@ -17,6 +17,7 @@ type FoodHeroProps = {
   userName: string;
   userImage?: string | null;
   isAuthenticated: boolean;
+  userRole?: "super_admin" | "admin" | "users";
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
 };
@@ -28,9 +29,12 @@ export function FoodHero({
   userName,
   userImage,
   isAuthenticated,
+  userRole = "users",
   searchQuery,
   onSearchQueryChange,
 }: FoodHeroProps) {
+  const canAccessAdmin = userRole === "admin" || userRole === "super_admin";
+
   return (
     <header className="px-1 pt-2 pb-1 sm:px-0">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -43,6 +47,16 @@ export function FoodHero({
           </h1>
         </div>
         <div className="flex items-center gap-3">
+          {canAccessAdmin ? (
+            <Button
+              variant="ghost"
+              className="h-10 rounded-full bg-orange-100 px-4 text-orange-700 hover:bg-orange-200"
+              nativeButton={false}
+              render={<Link href="/admin" />}
+            >
+              Admin
+            </Button>
+          ) : null}
           <div className="relative">
             <Button
               variant="ghost"
@@ -63,6 +77,7 @@ export function FoodHero({
             userInitials={userInitials}
             userName={userName}
             userImage={userImage}
+            userRole={userRole}
           />
         </div>
       </div>

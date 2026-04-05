@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Receipt, SignOut, UserCircle } from "@phosphor-icons/react";
+import { Receipt, ShieldChevron, SignOut, UserCircle } from "@phosphor-icons/react";
 
 import { authClient } from "@/lib/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,6 +20,7 @@ type UserAccountMenuProps = {
   userInitials: string;
   userName: string;
   userImage?: string | null;
+  userRole?: "super_admin" | "admin" | "users";
 };
 
 export function UserAccountMenu({
@@ -27,8 +28,10 @@ export function UserAccountMenu({
   userInitials,
   userName,
   userImage,
+  userRole = "users",
 }: UserAccountMenuProps) {
   const router = useRouter();
+  const canAccessAdmin = userRole === "admin" || userRole === "super_admin";
 
   if (!isAuthenticated) {
     return (
@@ -53,6 +56,12 @@ export function UserAccountMenu({
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-44">
+        {canAccessAdmin ? (
+          <DropdownMenuItem render={<Link href="/admin" />} className="cursor-pointer">
+            <ShieldChevron size={14} />
+            Admin
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem
           render={<Link href="/profile" />}
           className="cursor-pointer"

@@ -17,11 +17,19 @@ export async function getViewerSession() {
       return null;
     }
 
+    const sessionRole = (session.user as { role?: "super_admin" | "admin" | "users" }).role;
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+    const resolvedRole = dbUser?.role ?? sessionRole ?? "users";
+
     return {
       id: session.user.id,
       name: session.user.name ?? "",
       email: session.user.email ?? "",
       image: session.user.image ?? null,
+      role: resolvedRole,
     };
   } catch {
     return null;
