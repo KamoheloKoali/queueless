@@ -16,9 +16,10 @@ const serviceFilters = ["Fast Delivery", "Top Rated", "Meal Deals", "New"];
 type FoodHeroProps = {
   cartCount: number;
   cartLabel: string;
+  userInitials: string;
 };
 
-export function FoodHero({ cartCount, cartLabel }: FoodHeroProps) {
+export function FoodHero({ cartCount, cartLabel, userInitials }: FoodHeroProps) {
   return (
     <header className="rounded-3xl border bg-card p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -46,7 +47,7 @@ export function FoodHero({ cartCount, cartLabel }: FoodHeroProps) {
           </div>
           <Avatar className="size-10 rounded-2xl border border-border bg-muted">
             <AvatarFallback className="rounded-2xl bg-muted text-xs font-semibold text-foreground">
-              PM
+              {userInitials}
             </AvatarFallback>
           </Avatar>
         </div>
@@ -66,7 +67,7 @@ export function FoodHero({ cartCount, cartLabel }: FoodHeroProps) {
           <MagnifyingGlass size={20} />
         </Button>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+      {/* <div className="mt-4 flex flex-wrap gap-2">
         {serviceFilters.map((filter) => (
           <Badge
             key={filter}
@@ -76,7 +77,7 @@ export function FoodHero({ cartCount, cartLabel }: FoodHeroProps) {
             {filter}
           </Badge>
         ))}
-      </div>
+      </div> */}
     </header>
   );
 }

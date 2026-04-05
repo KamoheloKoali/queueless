@@ -5,7 +5,23 @@ import { useMemo, useState } from "react";
 import { FoodHero } from "@/components/food-ordering/food-hero";
 import { ProductGrid } from "@/components/food-ordering/product-grid";
 
-export function FoodOrderingClient() {
+type FoodOrderingClientProps = {
+  userDisplayName: string;
+};
+
+function getInitials(name: string) {
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+
+  if (parts.length === 0) return "U";
+
+  return parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
+}
+
+export function FoodOrderingClient({ userDisplayName }: FoodOrderingClientProps) {
   const [cartCount, setCartCount] = useState(0);
 
   const cartLabel = useMemo(
@@ -17,9 +33,15 @@ export function FoodOrderingClient() {
     setCartCount((current) => current + quantity);
   };
 
+  const userInitials = getInitials(userDisplayName);
+
   return (
     <>
-      <FoodHero cartCount={cartCount} cartLabel={cartLabel} />
+      <FoodHero
+        cartCount={cartCount}
+        cartLabel={cartLabel}
+        userInitials={userInitials}
+      />
       <ProductGrid onAddToCart={handleAddToCart} />
     </>
   );
