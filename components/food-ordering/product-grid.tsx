@@ -13,7 +13,7 @@ import { ProductCard } from "./product-card";
 type ProductGridProps = {
   products: ConsumerProduct[];
   searchQuery: string;
-  onAddToCart: (quantity: number) => void;
+  onAddToCart: (product: ConsumerProduct, quantity: number) => void;
 };
 
 function normalizeText(value: string) {

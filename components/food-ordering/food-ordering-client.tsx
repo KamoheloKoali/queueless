@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { useCart } from "@/components/food-ordering/cart-context";
 import { FoodHero } from "@/components/food-ordering/food-hero";
 import { ProductGrid } from "@/components/food-ordering/product-grid";
 import type { ConsumerProduct } from "@/components/food-ordering/types";
 
 type FoodOrderingClientProps = {
   userDisplayName: string;
+  userImage?: string | null;
   products: ConsumerProduct[];
   isAuthenticated: boolean;
 };
@@ -27,25 +29,34 @@ function getInitials(name: string) {
 
 export function FoodOrderingClient({
   userDisplayName,
+  userImage,
   products,
   isAuthenticated,
 }: FoodOrderingClientProps) {
-  const [cartCount, setCartCount] = useState(0);
+  const { itemCount, addItem } = useCart();
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
   const cartLabel = useMemo(
-    () => (cartCount === 1 ? "1 item" : `${cartCount} items`),
-    [cartCount],
+    () => (itemCount === 1 ? "1 item" : `${itemCount} items`),
+    [itemCount],
   );
 
-  const handleAddToCart = (quantity: number) => {
+  const handleAddToCart = (product: ConsumerProduct, quantity: number) => {
     if (!isAuthenticated) {
       toast.error("Please sign in first to add items to your cart.");
       return;
     }
 
-    setCartCount((current) => current + quantity);
+    addItem({
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      imageUrl: product.imageUrl,
+      category: product.category,
+      quantity,
+    });
+    toast.success("Added to cart.");
   };
 
   const userInitials = getInitials(userDisplayName);
@@ -61,9 +72,12 @@ export function FoodOrderingClient({
   return (
     <>
       <FoodHero
-        cartCount={cartCount}
+        cartCount={itemCount}
         cartLabel={cartLabel}
         userInitials={userInitials}
+        userName={userDisplayName}
+        userImage={userImage}
+        isAuthenticated={isAuthenticated}
         searchQuery={searchInput}
         onSearchQueryChange={setSearchInput}
       />

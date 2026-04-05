@@ -1,18 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import {
   ShoppingCartSimple,
   MagnifyingGlass,
 } from "@phosphor-icons/react";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { UserAccountMenu } from "@/components/food-ordering/user-account-menu";
 
 type FoodHeroProps = {
   cartCount: number;
   cartLabel: string;
   userInitials: string;
+  userName: string;
+  userImage?: string | null;
+  isAuthenticated: boolean;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
 };
@@ -21,6 +25,9 @@ export function FoodHero({
   cartCount,
   cartLabel,
   userInitials,
+  userName,
+  userImage,
+  isAuthenticated,
   searchQuery,
   onSearchQueryChange,
 }: FoodHeroProps) {
@@ -42,6 +49,8 @@ export function FoodHero({
               size="icon"
               className="size-10 rounded-full cursor-pointer bg-orange-100 text-orange-700 hover:bg-orange-200"
               aria-label={`Cart with ${cartLabel}`}
+              nativeButton={false}
+              render={<Link href="/checkout" />}
             >
               <ShoppingCartSimple size={18} weight="fill" />
             </Button>
@@ -49,11 +58,12 @@ export function FoodHero({
               {cartCount}
             </span>
           </div>
-          <Avatar className="size-10 rounded-full">
-            <AvatarFallback className="rounded-full text-xs font-semibold text-orange-700">
-              {userInitials}
-            </AvatarFallback>
-          </Avatar>
+          <UserAccountMenu
+            isAuthenticated={isAuthenticated}
+            userInitials={userInitials}
+            userName={userName}
+            userImage={userImage}
+          />
         </div>
       </div>
       <div className="mt-5 flex flex-col gap-3 sm:flex-row">

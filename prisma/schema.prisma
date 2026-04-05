@@ -26,6 +26,17 @@ enum TeamInviteStatus {
   revoked
 }
 
+enum PaymentMethod {
+  ecocash
+  mpesa
+}
+
+enum OrderStatus {
+  pending_verification
+  confirmed
+  rejected
+}
+
 model Product {
   id          String @id @default(uuid())
   name        String
@@ -54,9 +65,53 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  orders        Order[]
 
   @@unique([email])
   @@map("user")
+}
+
+model PaymentSetting {
+  id            Int      @id
+  ecocashNumber String?
+  mpesaNumber   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Order {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        OrderStatus   @default(pending_verification)
+  rejectionReason String?
+  paymentMethod PaymentMethod
+  proofImageUrl String
+  subtotal      Float
+  charges       Float
+  total         Float
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  items         OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  productName String
+  productImageUrl String?
+  unitPrice   Float
+  quantity    Int
+  lineTotal   Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orderId])
 }
 
 model Session {

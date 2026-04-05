@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
-import { Gear, House, ShoppingCartSimple, UsersThree } from "@phosphor-icons/react";
+import {
+  Gear,
+  House,
+  Receipt,
+  ShoppingCartSimple,
+  SlidersHorizontal,
+  UsersThree,
+} from "@phosphor-icons/react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -34,17 +41,17 @@ type AdminShellProps = {
 };
 
 function getInitials(name: string) {
-  const parts = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2);
+  const parts = name.trim().split(/\s+/).filter(Boolean).slice(0, 2);
 
   if (parts.length === 0) return "U";
   return parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
 }
 
-export function AdminShell({ user, canManageTeam = false, children }: AdminShellProps) {
+export function AdminShell({
+  user,
+  canManageTeam = false,
+  children,
+}: AdminShellProps) {
   const pathname = usePathname();
   const initials = getInitials(user.name || user.email);
 
@@ -84,6 +91,7 @@ export function AdminShell({ user, canManageTeam = false, children }: AdminShell
                     <span>Users</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     isActive={pathname === "/admin/products"}
@@ -94,6 +102,17 @@ export function AdminShell({ user, canManageTeam = false, children }: AdminShell
                     <span>Products</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={pathname === "/admin/orders"}
+                    tooltip="Orders"
+                    render={<Link href="/admin/orders" />}
+                  >
+                    <Receipt />
+                    <span>Orders</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
                 {canManageTeam ? (
                   <SidebarMenuItem>
                     <SidebarMenuButton
@@ -107,6 +126,16 @@ export function AdminShell({ user, canManageTeam = false, children }: AdminShell
                   </SidebarMenuItem>
                 ) : null}
               </SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={pathname === "/admin/settings"}
+                  tooltip="Settings"
+                  render={<Link href="/admin/settings" />}
+                >
+                  <SlidersHorizontal />
+                  <span>Settings</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>

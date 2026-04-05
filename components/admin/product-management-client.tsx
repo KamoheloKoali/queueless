@@ -607,7 +607,7 @@ export function ProductManagementClient({
               <UploadDropzone
                 endpoint="productImage"
                 appearance={{
-                  button: "bg-primary text-primary-foreground p-2 w-sm mb-2",
+                  button: "bg-primary text-primary-foreground p-2 w-fit mb-2",
                 }}
                 onClientUploadComplete={(res) => {
                   const uploadedFile = res?.[0];

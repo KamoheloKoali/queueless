@@ -28,7 +28,7 @@ import type { ConsumerProduct } from "./types";
 
 type ProductCardProps = {
   product: ConsumerProduct;
-  onAddToCart: (quantity: number) => void;
+  onAddToCart: (product: ConsumerProduct, quantity: number) => void;
 };
 
 export function ProductCard({ product, onAddToCart }: ProductCardProps) {
@@ -54,7 +54,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   };
 
   const addToCart = () => {
-    onAddToCart(quantity);
+    onAddToCart(product, quantity);
     setIsDialogOpen(false);
   };
 
