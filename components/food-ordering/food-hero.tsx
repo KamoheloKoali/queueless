@@ -2,26 +2,30 @@
 
 import {
   ShoppingCartSimple,
-  MapPin,
   MagnifyingGlass,
 } from "@phosphor-icons/react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-const serviceFilters = ["Fast Delivery", "Top Rated", "Meal Deals", "New"];
 
 type FoodHeroProps = {
   cartCount: number;
   cartLabel: string;
   userInitials: string;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
 };
 
-export function FoodHero({ cartCount, cartLabel, userInitials }: FoodHeroProps) {
+export function FoodHero({
+  cartCount,
+  cartLabel,
+  userInitials,
+  searchQuery,
+  onSearchQueryChange,
+}: FoodHeroProps) {
   return (
-    <header className="rounded-3xl border bg-card p-4 sm:p-6">
+    <header className="px-1 pt-2 pb-1 sm:px-0">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1.5">
           <p className="text-[11px] tracking-[0.16em] text-zinc-500 uppercase">
@@ -34,9 +38,9 @@ export function FoodHero({ cartCount, cartLabel, userInitials }: FoodHeroProps) 
         <div className="flex items-center gap-3">
           <div className="relative">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              className="size-10 rounded-2xl border-border bg-background text-foreground"
+              className="size-10 rounded-full cursor-pointer bg-orange-100 text-orange-700 hover:bg-orange-200"
               aria-label={`Cart with ${cartLabel}`}
             >
               <ShoppingCartSimple size={18} weight="fill" />
@@ -45,8 +49,8 @@ export function FoodHero({ cartCount, cartLabel, userInitials }: FoodHeroProps) 
               {cartCount}
             </span>
           </div>
-          <Avatar className="size-10 rounded-2xl border border-border bg-muted">
-            <AvatarFallback className="rounded-2xl bg-muted text-xs font-semibold text-foreground">
+          <Avatar className="size-10 rounded-full">
+            <AvatarFallback className="rounded-full text-xs font-semibold text-orange-700">
               {userInitials}
             </AvatarFallback>
           </Avatar>
@@ -60,24 +64,12 @@ export function FoodHero({ cartCount, cartLabel, userInitials }: FoodHeroProps) 
           />
           <Input
             placeholder="Search for pizza, burger, fries..."
-            className="h-11 rounded-2xl border-border bg-background pl-10 pr-3 text-sm"
+            className="h-11 rounded-full border-0 bg-gray-100 pl-10 pr-3 text-sm shadow-none"
+            value={searchQuery ?? ""}
+            onChange={(event) => onSearchQueryChange(event.target.value)}
           />
         </div>
-        <Button className="h-11 rounded-full px-[0.85rem] bg-orange-500">
-          <MagnifyingGlass size={20} />
-        </Button>
       </div>
-      {/* <div className="mt-4 flex flex-wrap gap-2">
-        {serviceFilters.map((filter) => (
-          <Badge
-            key={filter}
-            variant="outline"
-            className="rounded-full border-border bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground"
-          >
-            {filter}
-          </Badge>
-        ))}
-      </div> */}
     </header>
   );
 }

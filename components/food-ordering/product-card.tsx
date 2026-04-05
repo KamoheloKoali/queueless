@@ -5,14 +5,11 @@ import {
   Minus,
   Plus,
   ShoppingCartSimple,
-  Star,
 } from "@phosphor-icons/react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -26,12 +23,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
 
-import type { Product } from "./data";
+import type { ConsumerProduct } from "./types";
 
 type ProductCardProps = {
-  product: Product;
+  product: ConsumerProduct;
   onAddToCart: (quantity: number) => void;
 };
 
@@ -64,9 +60,13 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
 
   return (
     <>
-      <Card className="overflow-hidden rounded-xl py-0">
+      <Card className="overflow-hidden rounded-2xl border-0 bg-transparent py-0 shadow-none">
         <div className="flex h-40 w-full items-center justify-center bg-muted">
-          <ShoppingCartSimple size={48} className="text-muted-foreground/55" />
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="h-full w-full object-cover"
+          />
         </div>
         <CardHeader className="px-4 pt-4 pb-2 sm:px-5">
           <div className="flex items-start justify-between gap-3">
@@ -84,7 +84,11 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
           <p className="font-sans text-lg font-semibold tracking-tight">
             LSL {product.price.toFixed(2)}
           </p>
-          <Button size="icon" className="size-9 bg-orange-500 rounded-lg" onClick={openDialog}>
+          <Button
+            size="icon"
+            className="size-9 rounded-full bg-primary text-primary-foreground hover:opacity-95"
+            onClick={openDialog}
+          >
             <ShoppingCartSimple size={18} weight="fill" />
           </Button>
         </CardFooter>
@@ -101,22 +105,6 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
             <div className="flex justify-between">
               <span>Category</span>
               <span className="font-medium text-foreground">{product.category}</span>
-            </div>
-            <div className="mt-2 flex justify-between">
-              <span>Prep time</span>
-              <span className="font-medium text-foreground">{product.prepTime}</span>
-            </div>
-            <div className="mt-2 flex justify-between">
-              <span>Calories</span>
-              <span className="font-medium text-foreground">
-                {product.calories} Cal
-              </span>
-            </div>
-            <div className="mt-2 flex justify-between">
-              <span>Rating</span>
-              <span className="font-medium text-foreground">
-                {product.rating.toFixed(1)}
-              </span>
             </div>
           </div>
 

@@ -1,8 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { auth } from "@/lib/auth";
-
-const PUBLIC_PATHS = new Set(["/sign-in", "/sign-up"]);
+const PUBLIC_PATHS = new Set(["/", "/sign-in", "/sign-up"]);
+const AUTH_PAGES = new Set(["/sign-in", "/sign-up"]);
+const SESSION_COOKIE_NAMES = [
+  "better-auth.session_token",
+  "better-auth-session_token",
+  "__Secure-better-auth.session_token",
+  "__Secure-better-auth-session_token",
+];
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -11,19 +16,18 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
-
   const isPublicPath = PUBLIC_PATHS.has(pathname);
+  const hasSessionCookie = SESSION_COOKIE_NAMES.some((cookieName) =>
+    Boolean(request.cookies.get(cookieName)),
+  );
 
-  if (!session && !isPublicPath) {
+  if (!hasSessionCookie && !isPublicPath) {
     const signInUrl = new URL("/sign-in", request.url);
     signInUrl.searchParams.set("redirectTo", `${pathname}${search}`);
     return NextResponse.redirect(signInUrl);
   }
 
-  if (session && isPublicPath) {
+  if (hasSessionCookie && AUTH_PAGES.has(pathname)) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 

@@ -7,28 +7,66 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 
-import { categories, products } from "./data";
+import type { ConsumerProduct } from "./types";
 import { ProductCard } from "./product-card";
 
 type ProductGridProps = {
+  products: ConsumerProduct[];
+  searchQuery: string;
   onAddToCart: (quantity: number) => void;
 };
 
-export function ProductGrid({ onAddToCart }: ProductGridProps) {
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function matchesSearch(product: ConsumerProduct, searchQuery: string) {
+  const normalizedQuery = normalizeText(searchQuery);
+  if (!normalizedQuery) return true;
+
+  const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+
+  const haystack = normalizeText(
+    `${product.name} ${product.description} ${product.category}`,
+  );
+
+  return tokens.every((token) => haystack.includes(token));
+}
+
+export function ProductGrid({
+  products,
+  searchQuery,
+  onAddToCart,
+}: ProductGridProps) {
+  const categories = [
+    "all",
+    ...Array.from(
+      new Set(
+        products
+          .map((product) => product.category)
+          .filter((category) => category.toLowerCase() !== "all"),
+      ),
+    ),
+  ];
 
   return (
-    <section className="rounded-3xl bg-card p-4 sm:p-6">
-      <Tabs defaultValue="Most Popular" className="gap-5">
+    <section className="px-1 pt-0 pb-4 sm:px-0">
+      <Tabs defaultValue="all" className="gap-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <TabsList
             variant="line"
-            className="h-auto w-full flex-wrap justify-start gap-2 rounded-2xl bg-transparent p-0 sm:w-auto"
+            className="h-auto w-full flex-wrap justify-start gap-2 bg-transparent p-0 sm:w-auto"
           >
             {categories.map((category) => (
               <TabsTrigger
                 key={category}
                 value={category}
-                className="h-9 rounded-full border border-border bg-background px-4 text-xs font-medium text-muted-foreground data-active:border-border data-active:bg-muted data-active:text-foreground data-active:after:opacity-0"
+                className="h-9 rounded-full border-0 bg-orange-50 px-4 text-xs font-medium capitalize text-orange-700 data-active:bg-primary  data-active:after:opacity-0"
               >
                 {category}
               </TabsTrigger>
@@ -37,22 +75,33 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
         </div>
 
         {categories.map((category) => {
-          const visibleProducts =
-            category === "Most Popular"
+          const productsByCategory =
+            category === "all"
               ? products
               : products.filter((product) => product.category === category);
+          const visibleProducts = productsByCategory.filter((product) =>
+            matchesSearch(product, searchQuery),
+          );
 
           return (
             <TabsContent key={category} value={category} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {visibleProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onAddToCart={onAddToCart}
-                  />
-                ))}
-              </div>
+              {visibleProducts.length > 0 ? (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {visibleProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onAddToCart={onAddToCart}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl bg-orange-50 p-6 text-sm text-muted-foreground">
+                  {searchQuery.trim()
+                    ? "No products match your search."
+                    : "No products in this category yet."}
+                </div>
+              )}
             </TabsContent>
           );
         })}

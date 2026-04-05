@@ -14,6 +14,18 @@ datasource db {
   // directUrl = env("DIRECT_URL")
 }
 
+enum Role {
+  super_admin
+  admin
+  users
+}
+
+enum TeamInviteStatus {
+  pending
+  accepted
+  revoked
+}
+
 model Product {
   id          String @id @default(uuid())
   name        String
@@ -23,10 +35,19 @@ model Product {
   imageUrl    String
 }
 
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  key       String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model User {
   id            String    @id
   name          String
   email         String
+  role          Role      @default(users)
   emailVerified Boolean   @default(false)
   image         String?
   createdAt     DateTime  @default(now())
@@ -84,4 +105,18 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model TeamInvite {
+  id         String           @id @default(uuid())
+  email      String
+  role       Role             @default(users)
+  status     TeamInviteStatus @default(pending)
+  invitedBy  String
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@unique([email])
+  @@index([status])
+  @@map("team_invite")
 }
