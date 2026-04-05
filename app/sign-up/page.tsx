@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
@@ -16,10 +16,12 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-export default function SignUpPage() {
+function SignUpContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialEmail = searchParams.get("email") ?? "";
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [isPending, setIsPending] = useState(false);
 
@@ -118,5 +120,26 @@ export default function SignUpPage() {
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+function SignUpFallback() {
+  return (
+    <main className="flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full max-w-md rounded-xl border py-0">
+        <CardHeader className="px-6 pt-6 pb-2">
+          <CardTitle className="font-sans text-xl">Sign up</CardTitle>
+          <CardDescription>Loading sign up...</CardDescription>
+        </CardHeader>
+      </Card>
+    </main>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<SignUpFallback />}>
+      <SignUpContent />
+    </Suspense>
   );
 }

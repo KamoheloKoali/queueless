@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
 import { toast } from "sonner";
 
+import { applyPendingTeamInviteForCurrentUser } from "@/app/actions/team-invite-actions";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +58,15 @@ function SignInContent() {
 
       toast.error(errorMessage);
       return;
+    }
+
+    try {
+      const inviteResult = await applyPendingTeamInviteForCurrentUser();
+      if (inviteResult.applied) {
+        toast.success(inviteResult.message);
+      }
+    } catch {
+      // Sign-in is already successful; invite application can be retried on next sign-in.
     }
 
     toast.success("Signed in successfully.");

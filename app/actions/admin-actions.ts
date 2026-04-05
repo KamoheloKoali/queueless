@@ -3,12 +3,17 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin, requireSuperAdmin } from "@/lib/auth-helpers";
+import { getAppBaseUrl, sendAppEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 
 type TeamRole = "super_admin" | "admin";
 
 function isTeamRole(value: string): value is TeamRole {
   return value === "super_admin" || value === "admin";
+}
+
+function formatTeamRole(role: TeamRole) {
+  return role === "super_admin" ? "Super Admin" : "Admin";
 }
 
 export async function getUsersForAdmin() {
@@ -71,6 +76,10 @@ export async function inviteTeamMember(input: { email: string; role: string }) {
     return { success: false, message: "Invalid team role selected." };
   }
 
+  const appBaseUrl = getAppBaseUrl();
+  const signUpUrl = `${appBaseUrl}/sign-up?email=${encodeURIComponent(email)}`;
+  const signInUrl = `${appBaseUrl}/sign-in?email=${encodeURIComponent(email)}`;
+
   await prisma.teamInvite.upsert({
     where: { email },
     update: {
@@ -86,8 +95,30 @@ export async function inviteTeamMember(input: { email: string; role: string }) {
     },
   });
 
+  const emailResult = await sendAppEmail({
+    to: email,
+    subject: "You have been invited to the Queueless admin team",
+    html: `
+      <div>
+        <p>Hello,</p>
+        <p>${currentUser.name} invited you to join the Queueless admin team as <strong>${formatTeamRole(role)}</strong>.</p>
+        <p>If you already have an account, sign in using this email:</p>
+        <p><a href="${signInUrl}">Sign in</a></p>
+        <p>If you do not have an account yet, create one first:</p>
+        <p><a href="${signUpUrl}">Sign up</a></p>
+        <p>After signing in, your team role will be applied automatically.</p>
+      </div>
+    `,
+    text: `${currentUser.name} invited you to join the Queueless admin team as ${formatTeamRole(role)}. Sign in: ${signInUrl}. New user? Sign up: ${signUpUrl}.`,
+  });
+
   revalidatePath("/admin/team");
-  return { success: true, message: "Invite sent successfully." };
+  return {
+    success: true,
+    message: emailResult.ok
+      ? "Invite sent and email notification delivered."
+      : "Invite saved. Email could not be delivered; check mail configuration.",
+  };
 }
 
 export async function updateTeamMemberRole(input: {
