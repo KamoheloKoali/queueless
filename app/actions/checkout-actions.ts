@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdmin, requireAuth } from "@/lib/auth-helpers";
+import { getAppBaseUrl, sendAppEmail } from "@/lib/email";
+import { formatOrderNumber } from "@/lib/order-display";
 import { prisma } from "@/lib/prisma";
 
 const DEFAULT_ECOCASH_CHARGE = 2;
@@ -13,6 +15,86 @@ type PlaceOrderItemInput = {
   productId: string;
   quantity: number;
 };
+
+function toCurrency(amount: number) {
+  return `LSL ${amount.toFixed(2)}`;
+}
+
+async function sendOrderPlacedEmailToAdmins(input: {
+  orderId: string;
+  orderNumber: number;
+  customerName: string;
+  customerEmail: string;
+  total: number;
+}) {
+  const adminUsers = await prisma.user.findMany({
+    where: {
+      role: {
+        in: ["admin", "super_admin"],
+      },
+    },
+    select: {
+      email: true,
+    },
+  });
+
+  const recipients = [...new Set(adminUsers.map((user) => user.email.trim()).filter(Boolean))];
+  if (recipients.length === 0) {
+    return;
+  }
+
+  const orderPath = `/admin/orders#order-${input.orderId}`;
+  const orderUrl = `${getAppBaseUrl()}${orderPath}`;
+
+  await sendAppEmail({
+    to: recipients,
+    subject: `New order awaiting verification (${formatOrderNumber(input.orderNumber)})`,
+    html: `
+      <div>
+        <p>A new order has been placed and is awaiting verification.</p>
+        <p><strong>Order:</strong> ${formatOrderNumber(input.orderNumber)}</p>
+        <p><strong>Customer:</strong> ${input.customerName} (${input.customerEmail})</p>
+        <p><strong>Total:</strong> ${toCurrency(input.total)}</p>
+        <p><a href="${orderUrl}">Open order in admin dashboard</a></p>
+      </div>
+    `,
+    text: `New order ${formatOrderNumber(input.orderNumber)} from ${input.customerName} (${input.customerEmail}), total ${toCurrency(input.total)}. Review: ${orderUrl}`,
+  });
+}
+
+async function sendOrderStatusEmailToUser(input: {
+  orderId: string;
+  orderNumber: number;
+  status: "confirmed" | "rejected";
+  rejectionReason: string | null;
+  total: number;
+  customerEmail: string;
+  customerName: string;
+}) {
+  const detailsPath = `/orders/${input.orderId}`;
+  const detailsUrl = `${getAppBaseUrl()}${detailsPath}`;
+  const isRejected = input.status === "rejected";
+  const reasonText = isRejected && input.rejectionReason ? input.rejectionReason : null;
+
+  const subject = isRejected
+    ? `Order rejected (${formatOrderNumber(input.orderNumber)})`
+    : `Order confirmed (${formatOrderNumber(input.orderNumber)})`;
+
+  await sendAppEmail({
+    to: input.customerEmail,
+    subject,
+    html: `
+      <div>
+        <p>Hello ${input.customerName || "there"},</p>
+        <p>Your order <strong>${formatOrderNumber(input.orderNumber)}</strong> is now <strong>${input.status}</strong>.</p>
+        <p><strong>Total:</strong> ${toCurrency(input.total)}</p>
+        ${reasonText ? `<p><strong>Reason:</strong> ${reasonText}</p>` : ""}
+        <p><a href="${detailsUrl}">View order details</a></p>
+      </div>
+    `,
+    text: `Your order ${formatOrderNumber(input.orderNumber)} is now ${input.status}.${reasonText ? ` Reason: ${reasonText}.` : ""} View details: ${detailsUrl}`,
+  });
+}
 
 async function getOrCreatePaymentSetting() {
   return prisma.paymentSetting.upsert({
@@ -133,10 +215,21 @@ export async function placeOrder(input: {
         },
       },
     },
-    select: { id: true },
+    select: {
+      id: true,
+      orderNumber: true,
+    },
   });
 
   revalidatePath("/admin/orders");
+
+  await sendOrderPlacedEmailToAdmins({
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    customerName: currentUser.name,
+    customerEmail: currentUser.email,
+    total,
+  });
 
   return {
     success: true,
@@ -190,6 +283,7 @@ export async function getOrdersForAdmin() {
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
+      orderNumber: true,
       status: true,
       rejectionReason: true,
       paymentMethod: true,
@@ -241,14 +335,40 @@ export async function updateOrderStatus(input: {
     return { success: false, message: "Please provide a rejection reason." };
   }
 
-  await prisma.order.update({
+  const updatedOrder = await prisma.order.update({
     where: { id: orderId },
     data: {
       status,
       rejectionReason: status === "rejected" ? reason : null,
     },
+    select: {
+      id: true,
+      orderNumber: true,
+      status: true,
+      rejectionReason: true,
+      total: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
   });
 
   revalidatePath("/admin/orders");
+  revalidatePath("/orders");
+  revalidatePath(`/orders/${orderId}`);
+
+  await sendOrderStatusEmailToUser({
+    orderId: updatedOrder.id,
+    orderNumber: updatedOrder.orderNumber,
+    status,
+    rejectionReason: updatedOrder.rejectionReason,
+    total: updatedOrder.total,
+    customerEmail: updatedOrder.user.email,
+    customerName: updatedOrder.user.name,
+  });
+
   return { success: true, message: `Order ${status}.` };
 }

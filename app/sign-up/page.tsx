@@ -41,13 +41,13 @@ export default function SignUpPage() {
       return;
     }
 
-    toast.success("Account created successfully.");
-    router.push("/");
+    toast.success("Account created. Check your email to verify your account.");
+    router.push(`/sign-in?email=${encodeURIComponent(email)}`);
   };
 
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md rounded-xl border py-0">
+      <Card className="w-full max-w-md rounded-xl py-0">
         <CardHeader className="px-6 pt-6 pb-2">
           <CardTitle className="font-sans text-xl">Sign up</CardTitle>
           <CardDescription>

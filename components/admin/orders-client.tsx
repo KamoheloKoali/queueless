@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { updateOrderStatus } from "@/app/actions/checkout-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatOrderNumber } from "@/lib/order-display";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 type AdminOrder = {
   id: string;
+  orderNumber: number;
   status: "pending_verification" | "confirmed" | "rejected";
   rejectionReason: string | null;
   paymentMethod: "ecocash" | "mpesa";
@@ -119,9 +121,9 @@ export function OrdersClient({ orders }: OrdersClientProps) {
           </TableHeader>
           <TableBody>
             {orders.map((order) => (
-              <TableRow key={order.id}>
+              <TableRow key={order.id} id={`order-${order.id}`}>
                 <TableCell className="px-4">
-                  <p className="font-medium">{order.id.slice(0, 8)}</p>
+                  <p className="font-medium">{formatOrderNumber(order.orderNumber)}</p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(order.createdAt).toLocaleString()}
                   </p>

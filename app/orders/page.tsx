@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { getOrdersForCurrentUser, getViewerSession } from "@/app/actions/user-actions";
+import { formatOrderNumber } from "@/lib/order-display";
 import { UserPageHeader } from "@/components/food-ordering/user-page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,7 @@ export default async function OrdersPage() {
         {orders.map((order) => (
           <Card key={order.id} className="rounded-md shadow-none py-0">
             <CardHeader className="px-4 py-3">
-              <CardTitle className="text-sm">Order #{order.id.slice(0, 8)}</CardTitle>
+              <CardTitle className="text-sm">Order #{formatOrderNumber(order.orderNumber)}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 px-4 pb-4 text-xs">
               <div className="flex flex-wrap items-center gap-2">

@@ -19,9 +19,12 @@ import { Input } from "@/components/ui/input";
 export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
+  const initialEmail = searchParams.get("email") ?? "";
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [isPending, setIsPending] = useState(false);
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   const redirectTo = searchParams.get("redirectTo");
   const callbackURL =
@@ -29,6 +32,7 @@ export default function SignInPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setNeedsVerification(false);
     setIsPending(true);
 
     const result = await authClient.signIn.email({
@@ -40,7 +44,18 @@ export default function SignInPage() {
     setIsPending(false);
 
     if (result.error) {
-      toast.error(result.error.message ?? "Unable to sign in.");
+      const errorCode = (result.error as { code?: string }).code;
+      const errorMessage = result.error.message ?? "Unable to sign in.";
+      const requiresVerification =
+        errorCode === "EMAIL_NOT_VERIFIED" ||
+        errorCode === "EMAIL_VERIFICATION_REQUIRED" ||
+        /verify/i.test(errorMessage);
+
+      if (requiresVerification) {
+        setNeedsVerification(true);
+      }
+
+      toast.error(errorMessage);
       return;
     }
 
@@ -48,9 +63,32 @@ export default function SignInPage() {
     router.push(callbackURL);
   };
 
+  const handleResendVerification = async () => {
+    if (!email.trim()) {
+      toast.error("Enter your email first.");
+      return;
+    }
+
+    setIsSendingVerification(true);
+
+    const result = await authClient.sendVerificationEmail({
+      email: email.trim(),
+      callbackURL,
+    });
+
+    setIsSendingVerification(false);
+
+    if (result.error) {
+      toast.error(result.error.message ?? "Could not resend verification email.");
+      return;
+    }
+
+    toast.success("Verification email sent.");
+  };
+
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md rounded-xl border py-0">
+      <Card className="w-full max-w-md rounded-xl py-0">
         <CardHeader className="px-6 pt-6 pb-2">
           <CardTitle className="font-sans text-xl">Sign in</CardTitle>
           <CardDescription>
@@ -97,6 +135,17 @@ export default function SignInPage() {
             >
               {isPending ? "Signing in..." : "Sign in"}
             </Button>
+            {needsVerification ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 w-full rounded-md"
+                onClick={handleResendVerification}
+                disabled={isSendingVerification}
+              >
+                {isSendingVerification ? "Sending..." : "Resend verification email"}
+              </Button>
+            ) : null}
           </form>
           <p className="mt-4 text-center text-xs text-muted-foreground">
             Don&apos;t have an account?{" "}

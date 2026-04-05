@@ -36,6 +36,7 @@ export async function getOrdersForCurrentUser() {
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
+      orderNumber: true,
       status: true,
       rejectionReason: true,
       paymentMethod: true,
@@ -68,6 +69,7 @@ export async function getOrderDetailsForCurrentUser(orderId: string) {
     },
     select: {
       id: true,
+      orderNumber: true,
       status: true,
       rejectionReason: true,
       paymentMethod: true,

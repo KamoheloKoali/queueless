@@ -5,6 +5,7 @@ import {
   getOrderDetailsForCurrentUser,
   getViewerSession,
 } from "@/app/actions/user-actions";
+import { formatOrderNumber } from "@/lib/order-display";
 import { UserPageHeader } from "@/components/food-ordering/user-page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,7 +44,7 @@ export default async function OrderDetailsPage({
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <UserPageHeader
-        title={`Order ${order.id.slice(0, 8)}`}
+        title={`Order ${formatOrderNumber(order.orderNumber)}`}
         isAuthenticated={Boolean(viewer)}
         userName={userName}
         userInitials={getInitials(userName)}
