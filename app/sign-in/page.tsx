@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, Suspense, useState } from "react";
 import { toast } from "sonner";
 
 import { authClient } from "@/lib/auth-client";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
-export default function SignInPage() {
+function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialEmail = searchParams.get("email") ?? "";
@@ -156,5 +156,26 @@ export default function SignInPage() {
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+function SignInFallback() {
+  return (
+    <main className="flex min-h-screen items-center justify-center p-4">
+      <Card className="w-full max-w-md rounded-xl border py-0">
+        <CardHeader className="px-6 pt-6 pb-2">
+          <CardTitle className="font-sans text-xl">Sign in</CardTitle>
+          <CardDescription>Loading sign in...</CardDescription>
+        </CardHeader>
+      </Card>
+    </main>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<SignInFallback />}>
+      <SignInContent />
+    </Suspense>
   );
 }
