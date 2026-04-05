@@ -66,9 +66,26 @@ model User {
   sessions      Session[]
   accounts      Account[]
   orders        Order[]
+  adminNotifications AdminNotification[]
 
   @@unique([email])
   @@map("user")
+}
+
+model AdminNotification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  href      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([userId, isRead])
+  @@map("admin_notification")
 }
 
 model PaymentSetting {

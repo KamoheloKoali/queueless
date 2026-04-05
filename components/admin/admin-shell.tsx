@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { ReactNode, useTransition } from "react";
 import {
+  Bell,
   Gear,
   House,
   Receipt,
@@ -12,7 +13,19 @@ import {
   UsersThree,
 } from "@phosphor-icons/react";
 
+import {
+  markAdminNotificationAsRead,
+  markAllAdminNotificationsAsRead,
+} from "@/app/actions/admin-notification-actions";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -37,6 +50,16 @@ type AdminShellProps = {
     role: "super_admin" | "admin" | "users";
   };
   canManageTeam?: boolean;
+  notifications: {
+    items: Array<{
+      id: string;
+      title: string;
+      message: string;
+      href: string | null;
+      isRead: boolean;
+    }>;
+    unreadCount: number;
+  };
   children: ReactNode;
 };
 
@@ -50,9 +73,12 @@ function getInitials(name: string) {
 export function AdminShell({
   user,
   canManageTeam = false,
+  notifications,
   children,
 }: AdminShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const initials = getInitials(user.name || user.email);
 
   return (
@@ -167,6 +193,70 @@ export function AdminShell({
           <h1 className="font-sans text-sm font-semibold text-foreground">
             Admin Dashboard
           </h1>
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className="group/button relative inline-flex size-9 items-center justify-center rounded-md border border-transparent bg-clip-padding text-xs font-medium whitespace-nowrap outline-none transition-all select-none hover:bg-muted focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
+                aria-label="Notifications"
+              >
+                <Bell size={20} />
+                {notifications.unreadCount > 0 ? (
+                  <span className="absolute top-1 right-1 min-w-4 rounded-full bg-primary px-1 text-center text-[10px] font-semibold text-primary-foreground">
+                    {notifications.unreadCount > 99 ? "99+" : notifications.unreadCount}
+                  </span>
+                ) : null}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-80">
+                <DropdownMenuGroup>
+                  <div className="px-2 py-2 text-xs text-muted-foreground">
+                    Notifications ({notifications.unreadCount} unread)
+                  </div>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                {notifications.items.length === 0 ? (
+                  <DropdownMenuItem disabled>No notifications yet.</DropdownMenuItem>
+                ) : (
+                  notifications.items.map((notification) => (
+                    <DropdownMenuItem
+                      key={notification.id}
+                      className="cursor-pointer"
+                      render={<Link href={notification.href || "/admin/orders"} />}
+                      onClick={() => {
+                        startTransition(async () => {
+                          await markAdminNotificationAsRead({
+                            notificationId: notification.id,
+                          });
+                          router.refresh();
+                        });
+                      }}
+                    >
+                      <div className="min-w-0">
+                        <p className={notification.isRead ? "font-medium" : "font-semibold"}>
+                          {notification.title}
+                        </p>
+                        <p className="truncate text-[11px] text-muted-foreground">
+                          {notification.message}
+                        </p>
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  disabled={notifications.unreadCount === 0 || isPending}
+                  onClick={() => {
+                    startTransition(async () => {
+                      await markAllAdminNotificationsAsRead();
+                      router.refresh();
+                    });
+                  }}
+                >
+                  Mark all as read
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </header>
         <div className="p-4 sm:p-6">{children}</div>
       </SidebarInset>

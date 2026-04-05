@@ -34,6 +34,7 @@ async function sendOrderPlacedEmailToAdmins(input: {
       },
     },
     select: {
+      id: true,
       email: true,
     },
   });
@@ -45,20 +46,32 @@ async function sendOrderPlacedEmailToAdmins(input: {
 
   const orderPath = `/admin/orders#order-${input.orderId}`;
   const orderUrl = `${getAppBaseUrl()}${orderPath}`;
+  const orderLabel = formatOrderNumber(input.orderNumber);
+
+  if (adminUsers.length > 0) {
+    await prisma.adminNotification.createMany({
+      data: adminUsers.map((adminUser) => ({
+        userId: adminUser.id,
+        title: "Order awaiting verification",
+        message: `${orderLabel} placed and ready for review.`,
+        href: orderPath,
+      })),
+    });
+  }
 
   await sendAppEmail({
     to: recipients,
-    subject: `New order awaiting verification (${formatOrderNumber(input.orderNumber)})`,
+    subject: `New order awaiting verification (${orderLabel})`,
     html: `
       <div>
         <p>A new order has been placed and is awaiting verification.</p>
-        <p><strong>Order:</strong> ${formatOrderNumber(input.orderNumber)}</p>
+        <p><strong>Order:</strong> ${orderLabel}</p>
         <p><strong>Customer:</strong> ${input.customerName} (${input.customerEmail})</p>
         <p><strong>Total:</strong> ${toCurrency(input.total)}</p>
         <p><a href="${orderUrl}">Open order in admin dashboard</a></p>
       </div>
     `,
-    text: `New order ${formatOrderNumber(input.orderNumber)} from ${input.customerName} (${input.customerEmail}), total ${toCurrency(input.total)}. Review: ${orderUrl}`,
+    text: `New order ${orderLabel} from ${input.customerName} (${input.customerEmail}), total ${toCurrency(input.total)}. Review: ${orderUrl}`,
   });
 }
 
@@ -222,6 +235,7 @@ export async function placeOrder(input: {
   });
 
   revalidatePath("/admin/orders");
+  revalidatePath("/admin");
 
   await sendOrderPlacedEmailToAdmins({
     orderId: order.id,

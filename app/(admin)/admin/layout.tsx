@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 
+import { getAdminNotifications } from "@/app/actions/admin-notification-actions";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { requireAdmin } from "@/lib/auth-helpers";
 
@@ -10,7 +11,10 @@ export default async function AdminLayout({
 }: {
   children: ReactNode;
 }) {
-  const currentUser = await requireAdmin("/admin");
+  const [currentUser, notifications] = await Promise.all([
+    requireAdmin("/admin"),
+    getAdminNotifications(),
+  ]);
 
   return (
     <AdminShell
@@ -20,6 +24,7 @@ export default async function AdminLayout({
         role: currentUser.role,
       }}
       canManageTeam={currentUser.role === "super_admin"}
+      notifications={notifications}
     >
       {children}
     </AdminShell>
