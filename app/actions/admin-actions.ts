@@ -80,7 +80,7 @@ export async function inviteTeamMember(input: { email: string; role: string }) {
   const signUpUrl = `${appBaseUrl}/sign-up?email=${encodeURIComponent(email)}`;
   const signInUrl = `${appBaseUrl}/sign-in?email=${encodeURIComponent(email)}`;
 
-  await prisma.teamInvite.upsert({
+  const emailInvite = await prisma.teamInvite.upsert({
     where: { email },
     update: {
       role,
@@ -95,6 +95,8 @@ export async function inviteTeamMember(input: { email: string; role: string }) {
     },
   });
 
+  const acceptInviteUrl = `${appBaseUrl}/accept-invite?inviteId=${encodeURIComponent(emailInvite.id)}`;
+
   const emailResult = await sendAppEmail({
     to: email,
     subject: "You have been invited to the Queueless admin team",
@@ -102,6 +104,12 @@ export async function inviteTeamMember(input: { email: string; role: string }) {
       <div>
         <p>Hello,</p>
         <p>${currentUser.name} invited you to join the Queueless admin team as <strong>${formatTeamRole(role)}</strong>.</p>
+        <p>
+          <a href="${acceptInviteUrl}" style="display:inline-block;padding:10px 16px;border-radius:8px;background:#f97316;color:#fff;text-decoration:none;">
+            Accept invitation
+          </a>
+        </p>
+        <p>This secure link will help you accept your invite whether you already have an account or need to create one.</p>
         <p>If you already have an account, sign in using this email:</p>
         <p><a href="${signInUrl}">Sign in</a></p>
         <p>If you do not have an account yet, create one first:</p>
@@ -109,7 +117,7 @@ export async function inviteTeamMember(input: { email: string; role: string }) {
         <p>After signing in, your team role will be applied automatically.</p>
       </div>
     `,
-    text: `${currentUser.name} invited you to join the Queueless admin team as ${formatTeamRole(role)}. Sign in: ${signInUrl}. New user? Sign up: ${signUpUrl}.`,
+    text: `${currentUser.name} invited you to join the Queueless admin team as ${formatTeamRole(role)}. Accept invitation: ${acceptInviteUrl}. Sign in: ${signInUrl}. New user? Sign up: ${signUpUrl}.`,
   });
 
   revalidatePath("/admin/team");
