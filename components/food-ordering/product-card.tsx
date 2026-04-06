@@ -6,6 +6,7 @@ import {
   Plus,
   ShoppingCartSimple,
 } from "@phosphor-icons/react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,9 +30,16 @@ import type { ConsumerProduct } from "./types";
 type ProductCardProps = {
   product: ConsumerProduct;
   onAddToCart: (product: ConsumerProduct, quantity: number) => void;
+  canOrderNow: boolean;
+  orderingMessage: string | null;
 };
 
-export function ProductCard({ product, onAddToCart }: ProductCardProps) {
+export function ProductCard({
+  product,
+  onAddToCart,
+  canOrderNow,
+  orderingMessage,
+}: ProductCardProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
 
@@ -41,6 +49,11 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   );
 
   const openDialog = () => {
+    if (!canOrderNow) {
+      toast.error(orderingMessage ?? "Ordering is currently closed.");
+      return;
+    }
+
     setQuantity(1);
     setIsDialogOpen(true);
   };
@@ -88,6 +101,9 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
             size="icon"
             className="size-9 rounded-full bg-primary text-primary-foreground hover:opacity-95"
             onClick={openDialog}
+            disabled={!canOrderNow}
+            aria-disabled={!canOrderNow}
+            title={!canOrderNow ? orderingMessage ?? "Ordering is closed." : undefined}
           >
             <ShoppingCartSimple size={18} weight="fill" />
           </Button>
@@ -137,7 +153,9 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
             <p className="text-sm font-medium text-muted-foreground">
               Total: <span className="text-foreground">LSL {totalPrice}</span>
             </p>
-            <Button onClick={addToCart}>Add to cart</Button>
+            <Button onClick={addToCart} disabled={!canOrderNow}>
+              Add to cart
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

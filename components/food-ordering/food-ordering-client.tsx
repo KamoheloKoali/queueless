@@ -14,6 +14,8 @@ type FoodOrderingClientProps = {
   products: ConsumerProduct[];
   isAuthenticated: boolean;
   userRole?: "super_admin" | "admin" | "users";
+  canOrderNow: boolean;
+  orderingMessage: string | null;
 };
 
 function getInitials(name: string) {
@@ -34,6 +36,8 @@ export function FoodOrderingClient({
   products,
   isAuthenticated,
   userRole = "users",
+  canOrderNow,
+  orderingMessage,
 }: FoodOrderingClientProps) {
   const { itemCount, addItem } = useCart();
   const [searchInput, setSearchInput] = useState("");
@@ -45,6 +49,11 @@ export function FoodOrderingClient({
   );
 
   const handleAddToCart = (product: ConsumerProduct, quantity: number) => {
+    if (!canOrderNow) {
+      toast.error(orderingMessage ?? "Ordering is currently closed.");
+      return;
+    }
+
     if (!isAuthenticated) {
       toast.error("Please sign in first to add items to your cart.");
       return;
@@ -88,6 +97,8 @@ export function FoodOrderingClient({
         products={products}
         searchQuery={searchQuery}
         onAddToCart={handleAddToCart}
+        canOrderNow={canOrderNow}
+        orderingMessage={orderingMessage}
       />
     </>
   );

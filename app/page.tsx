@@ -1,3 +1,4 @@
+import { getOrderingAvailabilityForStorefront } from "@/app/actions/checkout-actions";
 import { getProductsForConsumers } from "@/app/actions/product-actions";
 import { getViewerSession } from "@/app/actions/user-actions";
 import { FoodOrderingClient } from "@/components/food-ordering/food-ordering-client";
@@ -5,9 +6,10 @@ import { FoodOrderingClient } from "@/components/food-ordering/food-ordering-cli
 export const runtime = "nodejs";
 
 export default async function Home() {
-  const [viewer, products] = await Promise.all([
+  const [viewer, products, ordering] = await Promise.all([
     getViewerSession(),
     getProductsForConsumers(),
+    getOrderingAvailabilityForStorefront(),
   ]);
 
   const userDisplayName =
@@ -22,6 +24,8 @@ export default async function Home() {
           products={products}
           isAuthenticated={Boolean(viewer)}
           userRole={viewer?.role ?? "users"}
+          canOrderNow={ordering.canOrderNow}
+          orderingMessage={ordering.orderingMessage}
         />
       </section>
     </main>

@@ -317,6 +317,29 @@ export async function getCheckoutPaymentDetails() {
   };
 }
 
+export async function getOrderingAvailabilityForStorefront() {
+  const [settings, weeklySchedule] = await Promise.all([
+    getOrCreatePaymentSetting(),
+    getOrCreateOrderingDaySettings(),
+  ]);
+
+  const availability = getOrderingAvailability({
+    orderingEnabled: settings.orderingEnabled,
+    openingTime: settings.openingTime,
+    closingTime: settings.closingTime,
+    timezone: settings.timezone,
+    weeklySchedule,
+  });
+
+  return {
+    canOrderNow: availability.canOrderNow,
+    orderingMessage: availability.message,
+    openingTime: settings.openingTime,
+    closingTime: settings.closingTime,
+    timezone: settings.timezone,
+  };
+}
+
 export async function placeOrder(input: {
   paymentMethod: CheckoutPaymentMethod;
   proofImageUrl: string;

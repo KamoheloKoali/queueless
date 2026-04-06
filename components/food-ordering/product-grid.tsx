@@ -14,6 +14,8 @@ type ProductGridProps = {
   products: ConsumerProduct[];
   searchQuery: string;
   onAddToCart: (product: ConsumerProduct, quantity: number) => void;
+  canOrderNow: boolean;
+  orderingMessage: string | null;
 };
 
 function normalizeText(value: string) {
@@ -42,6 +44,8 @@ export function ProductGrid({
   products,
   searchQuery,
   onAddToCart,
+  canOrderNow,
+  orderingMessage,
 }: ProductGridProps) {
   const categories = [
     "all",
@@ -92,6 +96,8 @@ export function ProductGrid({
                       key={product.id}
                       product={product}
                       onAddToCart={onAddToCart}
+                      canOrderNow={canOrderNow}
+                      orderingMessage={orderingMessage}
                     />
                   ))}
                 </div>
