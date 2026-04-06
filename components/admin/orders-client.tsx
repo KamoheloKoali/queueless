@@ -41,7 +41,7 @@ type AdminOrder = {
     id: string;
     name: string;
     email: string;
-  };
+  } | null;
   items: Array<{
     id: string;
     productName: string;
@@ -53,9 +53,16 @@ type AdminOrder = {
 
 type OrdersClientProps = {
   orders: AdminOrder[];
+  analytics: {
+    totalOrders: number;
+    pendingCount: number;
+    confirmedCount: number;
+    rejectedCount: number;
+    grossTotal: number;
+  };
 };
 
-export function OrdersClient({ orders }: OrdersClientProps) {
+export function OrdersClient({ orders, analytics }: OrdersClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [rejectingOrderId, setRejectingOrderId] = useState<string | null>(null);
@@ -102,11 +109,55 @@ export function OrdersClient({ orders }: OrdersClientProps) {
   };
 
   return (
-    <Card className="rounded-xl border py-0">
-      <CardHeader className="px-4 py-3">
-        <CardTitle>Orders</CardTitle>
-      </CardHeader>
-      <CardContent className="px-0 pb-0">
+    <div className="space-y-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <Card className="rounded-xl py-0">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-xs text-muted-foreground">Total Orders</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <p className="text-2xl font-semibold">{analytics.totalOrders}</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-xl py-0">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-xs text-muted-foreground">Pending</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <p className="text-2xl font-semibold">{analytics.pendingCount}</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-xl py-0">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-xs text-muted-foreground">Confirmed</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <p className="text-2xl font-semibold">{analytics.confirmedCount}</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-xl py-0">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-xs text-muted-foreground">Rejected</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <p className="text-2xl font-semibold">{analytics.rejectedCount}</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-xl py-0">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-xs text-muted-foreground">Gross Total</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <p className="text-2xl font-semibold">LSL {analytics.grossTotal.toFixed(2)}</p>
+          </CardContent>
+        </Card>
+      </section>
+
+      <Card className="rounded-xl border py-0">
+        <CardHeader className="px-4 py-3">
+          <CardTitle>Orders</CardTitle>
+        </CardHeader>
+        <CardContent className="px-0 pb-0">
         <Table>
           <TableHeader className="bg-muted/60 text-muted-foreground">
             <TableRow>
@@ -129,8 +180,10 @@ export function OrdersClient({ orders }: OrdersClientProps) {
                   </p>
                 </TableCell>
                 <TableCell className="px-4">
-                  <p>{order.user.name}</p>
-                  <p className="text-xs text-muted-foreground">{order.user.email}</p>
+                  <p>{order.user?.name ?? "Deleted user"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {order.user?.email ?? "No active account"}
+                  </p>
                 </TableCell>
                 <TableCell className="px-4 capitalize">{order.paymentMethod}</TableCell>
                 <TableCell className="px-4">
@@ -188,48 +241,49 @@ export function OrdersClient({ orders }: OrdersClientProps) {
             ) : null}
           </TableBody>
         </Table>
-      </CardContent>
+        </CardContent>
 
-      <Dialog
-        open={Boolean(rejectingOrderId)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setRejectingOrderId(null);
-            setRejectReason("");
-          }
-        }}
-      >
-        <DialogContent className="max-w-md rounded-xl border p-5">
-          <DialogHeader>
-            <DialogTitle>Reject order</DialogTitle>
-            <DialogDescription>
-              Add a reason for rejection. The customer will see this on their orders page.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            value={rejectReason}
-            onChange={(event) => setRejectReason(event.target.value)}
-            placeholder="Enter rejection reason"
-            rows={4}
-          />
-          <DialogFooter className="sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setRejectingOrderId(null);
-                setRejectReason("");
-              }}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button type="button" onClick={onConfirmReject} disabled={isPending}>
-              Reject order
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
+        <Dialog
+          open={Boolean(rejectingOrderId)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setRejectingOrderId(null);
+              setRejectReason("");
+            }
+          }}
+        >
+          <DialogContent className="max-w-md rounded-xl border p-5">
+            <DialogHeader>
+              <DialogTitle>Reject order</DialogTitle>
+              <DialogDescription>
+                Add a reason for rejection. The customer will see this on their orders page.
+              </DialogDescription>
+            </DialogHeader>
+            <Textarea
+              value={rejectReason}
+              onChange={(event) => setRejectReason(event.target.value)}
+              placeholder="Enter rejection reason"
+              rows={4}
+            />
+            <DialogFooter className="sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setRejectingOrderId(null);
+                  setRejectReason("");
+                }}
+                disabled={isPending}
+              >
+                Cancel
+              </Button>
+              <Button type="button" onClick={onConfirmReject} disabled={isPending}>
+                Reject order
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </Card>
+    </div>
   );
 }

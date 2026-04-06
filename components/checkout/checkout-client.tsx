@@ -23,6 +23,11 @@ type CheckoutClientProps = {
   ecocashNumber: string;
   mpesaNumber: string;
   ecocashCharge: number;
+  canOrderNow: boolean;
+  orderingMessage: string | null;
+  openingTime: string;
+  closingTime: string;
+  timezone: string;
   mpesaInstruction: string;
   ecocashInstruction: string;
 };
@@ -36,6 +41,11 @@ export function CheckoutClient({
   ecocashNumber,
   mpesaNumber,
   ecocashCharge,
+  canOrderNow,
+  orderingMessage,
+  openingTime,
+  closingTime,
+  timezone,
   mpesaInstruction,
   ecocashInstruction,
 }: CheckoutClientProps) {
@@ -268,12 +278,18 @@ export function CheckoutClient({
           <Badge variant="outline" className="rounded-full">
             Order will be marked as pending verification
           </Badge>
+          {!canOrderNow ? (
+            <p className="rounded-md border border-destructive/25 bg-destructive/5 p-2 text-xs text-destructive">
+              {orderingMessage ??
+                `Ordering is currently closed. Orders are accepted between ${openingTime} and ${closingTime} (${timezone}).`}
+            </p>
+          ) : null}
 
           <Button
             type="button"
             className="w-full rounded-md"
             onClick={onPlaceOrder}
-            disabled={items.length === 0 || !proofImageUrl || isPending}
+            disabled={items.length === 0 || !proofImageUrl || isPending || !canOrderNow}
           >
             Place Order
           </Button>

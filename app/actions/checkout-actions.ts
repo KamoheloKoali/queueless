@@ -8,6 +8,18 @@ import { formatOrderNumber } from "@/lib/order-display";
 import { prisma } from "@/lib/prisma";
 
 const DEFAULT_ECOCASH_CHARGE = 2;
+const DEFAULT_OPENING_TIME = "08:00";
+const DEFAULT_CLOSING_TIME = "20:00";
+const DEFAULT_ORDERING_TIMEZONE = "Africa/Maseru";
+const WEEKDAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+] as const;
 
 type CheckoutPaymentMethod = "ecocash" | "mpesa";
 
@@ -18,6 +30,123 @@ type PlaceOrderItemInput = {
 
 function toCurrency(amount: number) {
   return `LSL ${amount.toFixed(2)}`;
+}
+
+function parseClockTimeToMinutes(value: string) {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value.trim());
+  if (!match) {
+    return null;
+  }
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  return hours * 60 + minutes;
+}
+
+function getCurrentMinutesInTimezone(timezone: string) {
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: timezone,
+  });
+  const parts = formatter.formatToParts(new Date());
+  const hourPart = parts.find((part) => part.type === "hour")?.value;
+  const minutePart = parts.find((part) => part.type === "minute")?.value;
+
+  if (!hourPart || !minutePart) {
+    return null;
+  }
+
+  const hours = Number(hourPart);
+  const minutes = Number(minutePart);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+}
+
+function getCurrentWeekdayIndexInTimezone(timezone: string) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    timeZone: timezone,
+  });
+  const weekdayShort = formatter.format(new Date());
+  const map: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+
+  return map[weekdayShort] ?? null;
+}
+
+function isCurrentTimeInWindow(input: {
+  openingTime: string;
+  closingTime: string;
+  timezone: string;
+}) {
+  const openingMinutes = parseClockTimeToMinutes(input.openingTime);
+  const closingMinutes = parseClockTimeToMinutes(input.closingTime);
+  const currentMinutes = getCurrentMinutesInTimezone(input.timezone);
+
+  if (openingMinutes === null || closingMinutes === null || currentMinutes === null) {
+    return false;
+  }
+
+  if (openingMinutes === closingMinutes) {
+    return true;
+  }
+
+  if (openingMinutes < closingMinutes) {
+    return currentMinutes >= openingMinutes && currentMinutes < closingMinutes;
+  }
+
+  return currentMinutes >= openingMinutes || currentMinutes < closingMinutes;
+}
+
+function getOrderingAvailability(input: {
+  orderingEnabled: boolean;
+  openingTime: string;
+  closingTime: string;
+  timezone: string;
+  weeklySchedule: Array<{ dayOfWeek: number; isOpen: boolean }>;
+}) {
+  if (!input.orderingEnabled) {
+    return {
+      canOrderNow: false,
+      message: "Ordering is currently disabled by the admin.",
+    };
+  }
+
+  const currentDay = getCurrentWeekdayIndexInTimezone(input.timezone);
+  if (currentDay === null) {
+    return {
+      canOrderNow: false,
+      message: "Could not determine current day in configured timezone.",
+    };
+  }
+
+  const todaySetting = input.weeklySchedule.find((day) => day.dayOfWeek === currentDay);
+  if (todaySetting && !todaySetting.isOpen) {
+    return {
+      canOrderNow: false,
+      message: `Ordering is closed on ${WEEKDAY_NAMES[currentDay]}.`,
+    };
+  }
+
+  const canOrderNow = isCurrentTimeInWindow(input);
+  return {
+    canOrderNow,
+    message: canOrderNow
+      ? null
+      : `Ordering is currently closed. Orders are accepted between ${input.openingTime} and ${input.closingTime} (${input.timezone}).`,
+  };
 }
 
 async function sendOrderPlacedEmailToAdmins(input: {
@@ -117,18 +246,71 @@ async function getOrCreatePaymentSetting() {
       id: 1,
       ecocashNumber: null,
       mpesaNumber: null,
+      orderingEnabled: true,
+      openingTime: DEFAULT_OPENING_TIME,
+      closingTime: DEFAULT_CLOSING_TIME,
+      timezone: DEFAULT_ORDERING_TIMEZONE,
+    },
+  });
+}
+
+async function getOrCreateOrderingDaySettings() {
+  const existing = await prisma.orderingDaySetting.findMany({
+    orderBy: { dayOfWeek: "asc" },
+    select: {
+      id: true,
+      dayOfWeek: true,
+      isOpen: true,
+    },
+  });
+
+  const existingDays = new Set(existing.map((row) => row.dayOfWeek));
+  const missingDays = Array.from({ length: 7 }, (_, dayOfWeek) => dayOfWeek).filter(
+    (dayOfWeek) => !existingDays.has(dayOfWeek),
+  );
+
+  if (missingDays.length > 0) {
+    await prisma.orderingDaySetting.createMany({
+      data: missingDays.map((dayOfWeek) => ({
+        dayOfWeek,
+        isOpen: true,
+      })),
+    });
+  }
+
+  return prisma.orderingDaySetting.findMany({
+    orderBy: { dayOfWeek: "asc" },
+    select: {
+      id: true,
+      dayOfWeek: true,
+      isOpen: true,
     },
   });
 }
 
 export async function getCheckoutPaymentDetails() {
   await requireAuth("/checkout");
-  const settings = await getOrCreatePaymentSetting();
+  const [settings, weeklySchedule] = await Promise.all([
+    getOrCreatePaymentSetting(),
+    getOrCreateOrderingDaySettings(),
+  ]);
+  const availability = getOrderingAvailability({
+    orderingEnabled: settings.orderingEnabled,
+    openingTime: settings.openingTime,
+    closingTime: settings.closingTime,
+    timezone: settings.timezone,
+    weeklySchedule,
+  });
 
   return {
     ecocashNumber: settings.ecocashNumber ?? "",
     mpesaNumber: settings.mpesaNumber ?? "",
     ecocashCharge: DEFAULT_ECOCASH_CHARGE,
+    canOrderNow: availability.canOrderNow,
+    orderingMessage: availability.message,
+    openingTime: settings.openingTime,
+    closingTime: settings.closingTime,
+    timezone: settings.timezone,
     mpesaInstruction:
       "Choose the M-Pesa option to send with withdrawal charges included.",
     ecocashInstruction: `Add ${DEFAULT_ECOCASH_CHARGE} to the amount to cover EcoCash charges.`,
@@ -141,6 +323,24 @@ export async function placeOrder(input: {
   items: PlaceOrderItemInput[];
 }) {
   const currentUser = await requireAuth("/checkout");
+  const [settings, weeklySchedule] = await Promise.all([
+    getOrCreatePaymentSetting(),
+    getOrCreateOrderingDaySettings(),
+  ]);
+  const availability = getOrderingAvailability({
+    orderingEnabled: settings.orderingEnabled,
+    openingTime: settings.openingTime,
+    closingTime: settings.closingTime,
+    timezone: settings.timezone,
+    weeklySchedule,
+  });
+
+  if (!availability.canOrderNow) {
+    return {
+      success: false,
+      message: availability.message ?? "Ordering is currently closed.",
+    };
+  }
 
   const paymentMethod = input.paymentMethod;
   const proofImageUrl = String(input.proofImageUrl ?? "").trim();
@@ -262,6 +462,26 @@ export async function getPaymentSettingsForAdmin() {
   };
 }
 
+export async function getOpeningHoursForAdmin() {
+  await requireAdmin("/admin/opening-hours");
+  const [settings, weeklySchedule] = await Promise.all([
+    getOrCreatePaymentSetting(),
+    getOrCreateOrderingDaySettings(),
+  ]);
+
+  return {
+    orderingEnabled: settings.orderingEnabled,
+    openingTime: settings.openingTime,
+    closingTime: settings.closingTime,
+    timezone: settings.timezone,
+    weeklySchedule: weeklySchedule.map((day) => ({
+      dayOfWeek: day.dayOfWeek,
+      dayName: WEEKDAY_NAMES[day.dayOfWeek] ?? `Day ${day.dayOfWeek}`,
+      isOpen: day.isOpen,
+    })),
+  };
+}
+
 export async function updatePaymentSettings(input: {
   ecocashNumber: string;
   mpesaNumber: string;
@@ -288,6 +508,68 @@ export async function updatePaymentSettings(input: {
   revalidatePath("/admin/settings");
 
   return { success: true, message: "Payment settings updated." };
+}
+
+export async function updateOpeningHours(input: {
+  orderingEnabled: boolean;
+  openingTime: string;
+  closingTime: string;
+  timezone: string;
+  weeklySchedule: Array<{ dayOfWeek: number; isOpen: boolean }>;
+}) {
+  await requireAdmin("/admin/opening-hours");
+
+  const orderingEnabled = Boolean(input.orderingEnabled);
+  const openingTime = String(input.openingTime ?? "").trim();
+  const closingTime = String(input.closingTime ?? "").trim();
+  const timezone = String(input.timezone ?? "").trim() || DEFAULT_ORDERING_TIMEZONE;
+  const weeklySchedule = Array.isArray(input.weeklySchedule) ? input.weeklySchedule : [];
+
+  if (!parseClockTimeToMinutes(openingTime) || !parseClockTimeToMinutes(closingTime)) {
+    return { success: false, message: "Opening and closing times must be valid HH:mm values." };
+  }
+
+  const normalizedWeekly = Array.from({ length: 7 }, (_, dayOfWeek) => {
+    const match = weeklySchedule.find((entry) => Number(entry.dayOfWeek) === dayOfWeek);
+    return {
+      dayOfWeek,
+      isOpen: match ? Boolean(match.isOpen) : true,
+    };
+  });
+
+  await prisma.paymentSetting.upsert({
+    where: { id: 1 },
+    update: {
+      orderingEnabled,
+      openingTime,
+      closingTime,
+      timezone,
+    },
+    create: {
+      id: 1,
+      ecocashNumber: null,
+      mpesaNumber: null,
+      orderingEnabled,
+      openingTime,
+      closingTime,
+      timezone,
+    },
+  });
+
+  await getOrCreateOrderingDaySettings();
+  await Promise.all(
+    normalizedWeekly.map((day) =>
+      prisma.orderingDaySetting.update({
+        where: { dayOfWeek: day.dayOfWeek },
+        data: { isOpen: day.isOpen },
+      }),
+    ),
+  );
+
+  revalidatePath("/checkout");
+  revalidatePath("/admin/opening-hours");
+
+  return { success: true, message: "Opening hours updated." };
 }
 
 export async function getOrdersForAdmin() {
@@ -374,15 +656,17 @@ export async function updateOrderStatus(input: {
   revalidatePath("/orders");
   revalidatePath(`/orders/${orderId}`);
 
-  await sendOrderStatusEmailToUser({
-    orderId: updatedOrder.id,
-    orderNumber: updatedOrder.orderNumber,
-    status,
-    rejectionReason: updatedOrder.rejectionReason,
-    total: updatedOrder.total,
-    customerEmail: updatedOrder.user.email,
-    customerName: updatedOrder.user.name,
-  });
+  if (updatedOrder.user?.email) {
+    await sendOrderStatusEmailToUser({
+      orderId: updatedOrder.id,
+      orderNumber: updatedOrder.orderNumber,
+      status,
+      rejectionReason: updatedOrder.rejectionReason,
+      total: updatedOrder.total,
+      customerEmail: updatedOrder.user.email,
+      customerName: updatedOrder.user.name,
+    });
+  }
 
   return { success: true, message: `Order ${status}.` };
 }

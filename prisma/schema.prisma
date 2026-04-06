@@ -89,18 +89,30 @@ model AdminNotification {
 }
 
 model PaymentSetting {
-  id            Int      @id
-  ecocashNumber String?
-  mpesaNumber   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              Int      @id
+  ecocashNumber   String?
+  mpesaNumber     String?
+  orderingEnabled Boolean  @default(true)
+  openingTime     String   @default("08:00")
+  closingTime     String   @default("20:00")
+  timezone        String   @default("Africa/Maseru")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model OrderingDaySetting {
+  id        String   @id @default(uuid())
+  dayOfWeek Int      @unique
+  isOpen    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Order {
   id            String        @id @default(uuid())
   orderNumber   Int           @unique @default(autoincrement())
-  userId        String
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   status        OrderStatus   @default(pending_verification)
   rejectionReason String?
   paymentMethod PaymentMethod

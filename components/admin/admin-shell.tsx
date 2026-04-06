@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useTransition } from "react";
 import {
   Bell,
+  CalendarDots,
   Gear,
   House,
   Receipt,
@@ -136,6 +137,16 @@ export function AdminShell({
                   >
                     <Receipt />
                     <span>Orders</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={pathname === "/admin/opening-hours"}
+                    tooltip="Opening Hours"
+                    render={<Link href="/admin/opening-hours" />}
+                  >
+                    <CalendarDots />
+                    <span>Opening Hours</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
